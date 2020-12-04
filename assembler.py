@@ -4,7 +4,11 @@ from Bio import SeqIO
 
 
 def read_sequences(directory):
-
+    """
+    Reads in the sequences from the fastq files
+    :param directory:
+    :return:
+    """
     files = os.listdir(directory)
     sequences = []
 
@@ -17,8 +21,23 @@ def read_sequences(directory):
     return sequences
 
 
-def split_into_kmers(sequence, k):
-    return []
+def split_into_kmers(sequence, k, threshold):
+
+    kmers = {}
+
+    for i in range(0, len(sequence), k):
+        kmer = sequence[i: i + k + 1]
+        if len(kmer) > k:
+            if kmer in kmers.keys():
+                kmers[kmer] = kmers[kmer] + 1
+            else:
+                kmers[kmer] = 1
+
+    for key, count in kmers:
+        if count <= threshold:
+            kmers.pop(key)
+
+    return kmers
 
 
 def generate_de_bruijin_graph(kmers, k1mers, args):
@@ -46,9 +65,9 @@ if __name__ == "__main__":
     # each file is a seperate sequence
     sequences = read_sequences(args.input)
 
-    # for sequence in sequences:
-    #     kmers = split_into_kmers(sequence, args.k)
-    #     k1mers = split_into_kmers(sequence, args.k - 1)
+    for sequence in sequences:
+        kmers = split_into_kmers(sequence, args.k, args.threshold)
+        k1mers = split_into_kmers(sequence, args.k - 1, 0)
     #     graph = generate_de_bruijin_graph(kmers, k1mers, args)  # save the graph for plotting
     #     assembled_seq = traverse_graph(graph)
     #     mismatches = align_to_reference(assembled_seq, args)  # save the mismatches for plotting
