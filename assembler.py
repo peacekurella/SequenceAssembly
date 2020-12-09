@@ -77,16 +77,65 @@ def make_node_edge_map(edges):
         n = e[0]
         # If start node exists, add destination node to adjacency list
         if n in node_edge_map:
-            node_edge_map[n].append(e[1])
+            node_edge_map[n].add(e[1])
         # Add start node to map and initialize the adjacency list with the destination node
         else:
-            node_edge_map[n] = [e[1]]
+            adjacency_set = set() # using a set to support faster udpates
+            adjacency_set.add(e[1])
+            node_edge_map[n] = adjacency_set
+
     return node_edge_map
 
+def traverse_graph(graph, start):
+    # if there is no explicit start node
+    if len(start) == 0:
+        # pick any node as the start
+        start = list(graph.keys())[0]
+    else:
+        start = start[0]
 
-def traverse_graph(graph):
-    return []
+    # maintain a stack to store the nodes to visit
+    path = [start]
 
+    # accumulates the eulerian path
+    eulerian_path = []
+
+    # while stack is non-empty
+    while path:
+        # pick up the topmost node in the stack
+        curr_node = str(path[-1])
+
+        # if the current node is a key and has entries in its ajacency list
+        if curr_node in graph and graph[curr_node]:
+
+            # get the adjacency list
+            adj_nodes = graph[curr_node]
+            next_node = None
+
+            # if only one entry, proceed to that node
+            if len(adj_nodes) == 1:
+                next_node = adj_nodes.pop()
+
+            # if not, proceed to next node that would allow us to traverse
+            # the rest of the graph
+            else:
+                # iterate through all adj_nodes
+                for node in adj_nodes:
+                    # if the node leads to other nodes, set that as next
+                    if node in graph.keys():
+                        next_node = node
+                        break
+                # clear the edge from the current node
+                graph[curr_node].remove(next_node)
+            # update the path we want to explore
+            path.append(next_node)
+        else:
+            # if we can go any further, append the node to the path
+            eulerian_path.append(path.pop())
+    # reverse the accumulator as the path was populated in reverse
+    eulerian_path.reverse()
+
+    return eulerian_path
 
 def align_to_reference(assembled_seq, args):
     return []
