@@ -80,7 +80,7 @@ def plot_de_bruijin_graph(graph):
     layout = go.Layout(**layout)
 
     data = [
-        # node_trace,
+        node_trace,
         edge_trace
     ]
     fig = go.Figure(data, layout)
