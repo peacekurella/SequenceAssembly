@@ -1,32 +1,21 @@
-import argparse
-import igraph as ig
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import networkx as nx
 import plotly.graph_objs as go
 
 
-def plot_de_bruijin_graph(graph):
-    nodes = [
-        {'name': '1', 'group': 1},
-        {'name': '2', 'group': 2},
-        {'name': '3', 'group': 3},
-        {'name': '4', 'group': 1},
-        {'name': '5', 'group': 2},
-    ]
-
+if __name__ == "__main__":
     edges = [
-        (1, 5),
-        (2, 5),
-        (5, 1),
-        (4, 3),
-        (2, 1)
+        (1, 2),
+        (2, 3),
+        (3, 2),
+        (3, 4),
+        (4, 2),
+        (2, 3)
     ]
 
-    group = [
-        1,
-        2,
-        3
-    ]
-
-    labels = [
+    nodes = [
         1,
         2,
         3,
@@ -34,47 +23,60 @@ def plot_de_bruijin_graph(graph):
         5
     ]
 
-    G = ig.Graph(edges, directed=True)
-    layt = G.layout('kk', dim=3)
+    G = nx.DiGraph()
+    G.add_nodes_from(nodes)
+    G.add_edges_from(edges)
 
-    xn = [layt[n][0] for n in range(len(layt))]
-    yn = [layt[n][1] for n in range(len(layt))]
-    zn = [layt[n][2] for n in range(len(layt))]
+    node_positions = nx.kamada_kawai_layout(G)
 
-    xe = [[layt[e[0]][0], layt[e[1]][0], None] for e in edges]
-    ye = [[layt[e[0]][1], layt[e[1]][1], None] for e in edges]
-    ze = [[layt[e[0]][2], layt[e[1]][2], None] for e in edges]
+    xn, yn = [], []
+    for node in node_positions:
+        x, y = node_positions[node]
+        xn.append(x)
+        yn.append(y)
+
+    xe, ye = [], []
+    for edge in G.edges:
+        x0, y0 = node_positions[edge[0]]
+        x1, y1 = node_positions[edge[1]]
+        xe.extend([x0, x1, None])
+        ye.extend([y0, y1, None])
 
     edge_args = {
         'x': xe,
         'y': ye,
-        'z': ze,
         'mode': 'lines',
-        'line': {'color': 'rgb(125, 125, 125)', 'width': 3},
+        'line': {'width': 2},
         'hoverinfo': 'none',
         'name': 'lines'
     }
-    edge_trace = go.Scatter3d(**edge_args)
+    edge_trace = go.Scatter(**edge_args)
 
     node_args = {
         'x': xn,
         'y': yn,
-        'z': zn,
         'mode': 'markers',
         'name': 'k-mers',
-        'marker': {'symbol': 'circle', 'size': 6, 'color': group, 'line': {'color': 'rgb(50, 50, 50)', 'width': 0.5}},
-        'text': labels,
+        'marker': {'symbol': 'circle', 'size': 12},
+        'text': nodes,
         'hoverinfo': 'text'
     }
-    node_trace = go.Scatter3d(**node_args)
+    node_trace = go.Scatter(**node_args)
+
+    axis = {
+        'showline': False,
+        'showgrid': False,
+        'showticklabels': False,
+    }
 
     layout = {
         'title': 'de-Bruijin graph',
-        'width': 1000,
-        'height': 1000,
+        'width': 900,
+        'height': 600,
         'showlegend': False,
         'margin': {'t': 100},
-        'hovermode': 'closest'
+        'hovermode': 'closest',
+        'plot_bgcolor': 'rgba(0,0,0,0)',
     }
 
     layout = go.Layout(**layout)
@@ -84,17 +86,14 @@ def plot_de_bruijin_graph(graph):
         edge_trace
     ]
     fig = go.Figure(data, layout)
+    fig.update_xaxes(**axis)
+    fig.update_yaxes(**axis)
 
-    fig.show()
-
-
-def plot_discrepancies(mismatches):
-    return None
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--mismatches", default=None, help="mismatches file")
-    parser.add_argument("--graph", default=None, help="de bruijin graph")
-
-    plot_de_bruijin_graph(None)
+    app = dash.Dash(__name__)
+    app.layout = html.Div([
+        html.Div([
+            dcc.Graph(id="graph-1", figure=fig),
+            dcc.Graph(id="graph-2", figure=fig),
+        ])
+    ])
+    app.run_server(debug=True)
