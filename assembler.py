@@ -66,6 +66,51 @@ def generate_de_bruijin_graph(kmers):
     # Return the nodes, edges and the starting nodes in the graph.
     return nodes, edges, start_nodes
 
+def generate_de_bruijin_graph_alt(kmers):
+    
+    # to keep track of degree of nodes
+    node_degree = {}
+    
+    # Set of all nodes in the DB Graph
+    nodes = set()
+    
+    # Set of nodes having in-degrees
+    not_starts = set()
+    
+    # List of all directed edges in the graph
+    edges = []
+
+    for kmer in kmers:
+        
+        # From k-mers, get k-1mers
+        prefix = kmer[:-1]
+        suffix = kmer[1:]
+        
+        # Add k-1 mers to the nodes list
+        nodes.add(prefix)
+        nodes.add(suffix)
+
+        # Add an edge between the two k-1mers
+        edges.append((prefix, suffix))
+        
+        # fetching and updating degrees
+        p_count = node_degree.setdefault(prefix, 0)
+        node_degree[prefix] = p_count+1
+        s_count = node_degree.setdefault(suffix, 0)
+        node_degree[suffix] = s_count-1
+    
+    # reverse mapping to figure out start and stop nodes
+    degree_node = {v:k for k, v in node_degree.items() if v != 0}
+    
+    start = None
+    
+    # reverse mapping would be empty if there is not eulerian path, but only cycles
+    if len(degree_node) > 0:
+        start_stop = sorted(degree_node, reverse=True)
+        start = degree_node[start_stop[0]]
+        
+    # Return the nodes, edges and the starting nodes in the graph.
+    return nodes, edges, start
 
 def make_node_edge_map(edges):
 
@@ -137,6 +182,79 @@ def traverse_graph(graph, start):
 
     return eulerian_path
 
+def traverse_graph_alt(graph, start):
+    
+    # to collect all eulerian paths/cycles in a graph
+    all_trails = list()
+    
+    # the eularian tour of the entire graph
+    tour = []
+    tour.append(start)
+    
+    skip_trail = True
+    
+    while (True):
+        # start an eulerian trail
+        trail = []
+        
+        curr_node = start
+        
+        # traverse a trail until we can't go further
+        while (True):
+            
+            # terminate if can't go further
+            if curr_node not in graph:
+                break
+            
+            # pick a next node
+            next_node = graph[curr_node].pop()
+            
+            # if the adjacency list becomes emtpy for the current node, delete
+            if len(graph[curr_node]) == 0:
+                del graph[curr_node]
+            
+            # append next node to trail
+            trail.append(next_node)
+            
+            # if we circle back to start we have covered the trail
+            if next_node == start:
+                break;
+            
+            # if not move on to next node
+            curr_node = next_node
+        
+        # we skip adding the first trail as it would reflect in the tour
+        if skip_trail == False:
+            # after finishing a trail, add it to all tours
+            all_trails.append(list(trail))
+        
+        skip_trail = False
+        
+        # where to append the trail in the tour
+        append_at = tour.index(start)
+        
+        # introducing the trail inbetween the tour
+        tour = tour[:append_at+1] + trail + tour[append_at+1:]
+        
+        # done if no more nodes to explore
+        if len(graph) == 0:
+            break
+            
+        new_start_possible = False
+        
+        for node in tour:
+            if node in graph:
+                start = node
+                new_start_possible = True
+                break
+                
+        if not new_start_possible:
+            print("error, tour exploration terminated with remaining graph:")
+            print(graph)
+            break
+            
+    return tour, all_trails
+
 def align_to_reference(assembled_seq, args):
     return []
 
@@ -157,6 +275,14 @@ if __name__ == "__main__":
     for sequence in sequences:
         kmers = split_into_kmers(sequence, args.k, args.threshold)
         k1mers = split_into_kmers(sequence, args.k - 1, 0)
+        nodes, edges, start = generate_de_bruijin_graph_alt(kmers)
+        # start would be None if there is not eulerian path, but only cycles
+        if start == None:
+            nodes = list(nodes)
+            start = nodes[0]
+        graph = make_node_edge_map(edges)
+        tour, all_trails = traverse_graph(graph, start)
+    
     #     graph = generate_de_bruijin_graph(kmers, k1mers, args)  # save the graph for plotting
     #     assembled_seq = traverse_graph(graph)
     #     mismatches = align_to_reference(assembled_seq, args)  # save the mismatches for plotting
