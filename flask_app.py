@@ -7,14 +7,23 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return render_template('home.html', user_name='Hi!', content=None)
+    return render_template('home.html', content=None)
 
+
+@app.route('/graph')
+def graph():
+    graph = open('templates/graph.html', 'r').read()
+    return render_template('home.html', content=Markup(graph))
 
 @app.route('/stats')
 def stats():
-    stats = open('templates/graph.html', 'r').read()
-    return render_template('home.html', user_name='Hi!', content=Markup(stats))
+    stats = open('templates/stats.html', 'r').read()
+    return render_template('home.html', content=Markup(stats))
 
+@app.route('/align')
+def alignment():
+    align = open('templates/graph.html', 'r').read()
+    return render_template('home.html', content=Markup(align))
 
 @app.route('/data')
 def data():
@@ -62,7 +71,12 @@ def data():
                 "source": 3,
                 "target": 4,
                 "type": "IS_A"
-            }
+            },
+            {
+                "source": 3,
+                "target": 3,
+                "type": "IS_B"
+            },
         ]
     }
     return data
