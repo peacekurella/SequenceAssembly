@@ -3,38 +3,38 @@ import argparse
 from Bio import SeqIO
 
 
-def read_sequences(directory):
+def read_sequences(directory, k):
     """
     Reads in the sequences from the fastq files
     :param directory:
     :return:
     """
     files = os.listdir(directory)
-    sequences = []
+    kmer_lists = []
 
     for file in files:
-        sequence = ""
+        kmers = []
         filename = os.path.join(directory, file)
         for record in SeqIO.parse(filename, "fastq"):
-            sequence = sequence + ''.join(list(record.seq))
-        sequences.append(sequence)
-    return sequences
+            sequence = ''.join(list(record.seq))
+            kmers.append(split_into_kmers(sequence, k))
+        kmer_lists.append(kmers)
+    return kmer_lists
 
 
-def split_into_kmers(sequence, k, threshold):
-    kmers = {}
-
-    for i in range(0, len(sequence), k):
-        kmer = sequence[i: i + k + 1]
-        if len(kmer) > k:
-            if kmer in kmers.keys():
-                kmers[kmer] = kmers[kmer] + 1
-            else:
-                kmers[kmer] = 1
-
-    for key, count in kmers:
-        if count <= threshold:
-            kmers.pop(key)
+def split_into_kmers(sequence, k):
+    """
+    Return a list of all kmers in the sequence
+    :param sequence: sequence string
+    :param k: size of k mers
+    :return: a list of all kmers in the sequences
+    """
+    kmers = []
+    for i in range(len(sequence)):
+        if len(sequence[i: i + k + 1]) < k:
+            break
+        else:
+            kmers.append(sequence[i: i + k + 1])
 
     return kmers
 
@@ -68,7 +68,6 @@ def generate_de_bruijin_graph(kmers):
 
 
 def make_node_edge_map(edges):
-
     # Make a map of starting nodes to the adjacency list of that node
     node_edge_map = {}
 
@@ -103,11 +102,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # each file is a seperate sequence
-    sequences = read_sequences(args.input)
+    kmer_lists = read_sequences(args.input, args.k)
 
-    for sequence in sequences:
-        kmers = split_into_kmers(sequence, args.k, args.threshold)
-        k1mers = split_into_kmers(sequence, args.k - 1, 0)
-    #     graph = generate_de_bruijin_graph(kmers, k1mers, args)  # save the graph for plotting
-    #     assembled_seq = traverse_graph(graph)
-    #     mismatches = align_to_reference(assembled_seq, args)  # save the mismatches for plotting
+    count = 0
+    for kmer in kmer_lists[0]:
+        if len(kmer) < args.k:
+            print("oops")
+            count += 1
+
+    print(len(kmer_lists[0]))
+    print(count)

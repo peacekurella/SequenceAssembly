@@ -15,15 +15,18 @@ def graph():
     graph = open('templates/graph.html', 'r').read()
     return render_template('home.html', content=Markup(graph))
 
+
 @app.route('/stats')
 def stats():
     stats = open('templates/stats.html', 'r').read()
     return render_template('home.html', content=Markup(stats))
 
+
 @app.route('/align')
 def alignment():
     align = open('templates/graph.html', 'r').read()
     return render_template('home.html', content=Markup(align))
+
 
 @app.route('/data')
 def data():
