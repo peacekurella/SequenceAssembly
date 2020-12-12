@@ -17,7 +17,7 @@ def read_sequences(directory, k):
         filename = os.path.join(directory, file)
         for record in SeqIO.parse(filename, "fastq"):
             sequence = ''.join(list(record.seq))
-            kmers.append(split_into_kmers(sequence, k))
+            kmers.extend(split_into_kmers(sequence, k))
         kmer_lists.append(kmers)
     return kmer_lists
 
@@ -103,12 +103,3 @@ if __name__ == "__main__":
 
     # each file is a seperate sequence
     kmer_lists = read_sequences(args.input, args.k)
-
-    count = 0
-    for kmer in kmer_lists[0]:
-        if len(kmer) < args.k:
-            print("oops")
-            count += 1
-
-    print(len(kmer_lists[0]))
-    print(count)
