@@ -1,6 +1,7 @@
 import os
 import argparse
 from Bio import SeqIO
+import networkx as nx
 
 
 def read_sequences(directory, k):
@@ -38,6 +39,21 @@ def split_into_kmers(sequence, k):
 
     return kmers
 
+def filter_kmers(kmers, threshold) :
+
+    count_map = {}
+    for kmer in kmers :
+        if kmer in count_map :
+            count_map[kmer] += 1
+        else :
+            count_map[kmer] = 1
+
+    return_list = []
+    for kmer in kmers :
+        if count_map[kmer] >= threshold :
+            return_list.append(kmer)
+
+    return return_list
 
 def generate_de_bruijin_graph(kmers):
     # Set of all nodes in the DB Graph
@@ -90,6 +106,61 @@ def traverse_graph(graph):
 def align_to_reference(assembled_seq, args):
     return []
 
+def generate_de_bruijin_graph_alt(kmers):
+
+    # to keep track of degree of nodes
+    node_degree = {}
+
+    # Set of all nodes in the DB Graph
+    nodes = set()
+
+    # Set of nodes having in-degrees
+    not_starts = set()
+
+    # List of all directed edges in the graph
+    edges = []
+
+    for kmer in kmers:
+
+        # From k-mers, get k-1mers
+        prefix = kmer[:-1]
+        suffix = kmer[1:]
+
+        # Add k-1 mers to the nodes list
+        nodes.add(prefix)
+        nodes.add(suffix)
+
+        # Add an edge between the two k-1mers
+        edges.append((prefix, suffix))
+
+        # fetching and updating degrees
+        p_count = node_degree.setdefault(prefix, 0)
+        node_degree[prefix] = p_count+1
+        s_count = node_degree.setdefault(suffix, 0)
+        node_degree[suffix] = s_count-1
+
+    degree_node = {v:k for k, v in node_degree.items() if v != 0}
+
+    start = None
+
+    if len(degree_node) > 0:
+        start_stop = sorted(degree_node, reverse=True)
+        start = degree_node[start_stop[0]]
+
+    # Return the nodes, edges and the starting nodes in the graph.
+    return nodes, edges, start
+
+
+def DB_graph(nodes, edges) :
+    graph = nx.MultiDiGraph()
+
+    for node in nodes :
+        graph.add_node(node)
+
+    graph.add_edges_from(edges)
+
+    return graph
+
 
 if __name__ == "__main__":
     # add the command line arguments
@@ -103,3 +174,17 @@ if __name__ == "__main__":
 
     # each file is a seperate sequence
     kmer_lists = read_sequences(args.input, args.k)
+    pruned_list = filter_kmers(kmer_lists, args.threshold)
+
+    nodes, edges, start = generate_de_bruijin_graph_alt(kmer_lists[0])
+
+    graph = DB_graph(nodes, edges)
+
+    #print(nx.number_weakly_connected_components(graph))
+    weak_components = nx.weakly_connected_components(graph)
+    counter=0
+    for c in weak_components:
+        subgraph = graph.subgraph(list(c))
+        if nx.has_eulerian_path(subgraph) == True:
+            counter+=1
+    print(counter)
