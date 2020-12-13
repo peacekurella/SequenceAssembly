@@ -42,6 +42,7 @@ def split_into_kmers(sequence, k):
 def filter_kmers(kmers, threshold) :
 
     count_map = {}
+
     for kmer in kmers :
         if kmer in count_map :
             count_map[kmer] += 1
@@ -151,6 +152,101 @@ def generate_de_bruijin_graph_alt(kmers):
     return nodes, edges, start
 
 
+def get_start_nodes(edges):
+
+    node_degree = {}
+    for edge in edges:
+        prefix = edge[0]
+        suffix = edge[1]
+        p_count = node_degree.setdefault(prefix, 0)
+        node_degree[prefix] = p_count+1
+        s_count = node_degree.setdefault(suffix, 0)
+        node_degree[suffix] = s_count-1
+
+    degree_node = {v:k for k, v in node_degree.items() if v != 0}
+
+    start = None
+
+    if len(degree_node) > 0:
+        start_stop = sorted(degree_node, reverse=True)
+        start = degree_node[start_stop[0]]
+
+    # Return the nodes, edges and the starting nodes in the graph.
+    return start
+
+
+def traverse_graph_alt(graph, start):
+    # to collect all eulerian paths/cycles in a graph
+    all_trails = list()
+
+    # the eularian tour of the entire graph
+    tour = []
+    tour.append(start)
+
+    skip_trail = True
+
+    while (True):
+        # start an eulerian trail
+        trail = []
+
+        curr_node = start
+
+        # traverse a trail until we can't go further
+        while (True):
+
+            # terminate if can't go further
+            if curr_node not in graph:
+                break
+
+            # pick a next node
+            next_node = graph[curr_node].pop()
+
+            # if the adjacency list becomes emtpy for the current node, delete
+            if len(graph[curr_node]) == 0:
+                del graph[curr_node]
+
+            # append next node to trail
+            trail.append(next_node)
+
+            # if we circle back to start we have covered the trail
+            if next_node == start:
+                break;
+
+            # if not move on to next node
+            curr_node = next_node
+
+        # we skip adding the first trail as it would reflect in the tour
+        if skip_trail == False:
+            # after finishing a trail, add it to all tours
+            all_trails.append(list(trail))
+
+        skip_trail = False
+
+        # where to append the trail in the tour
+        append_at = tour.index(start)
+
+        # introducing the trail inbetween the tour
+        tour = tour[:append_at + 1] + trail + tour[append_at + 1:]
+
+        # done if no more nodes to explore
+        if len(graph) == 0:
+            break
+
+        new_start_possible = False
+
+        for node in tour:
+            if node in graph:
+                start = node
+                new_start_possible = True
+                break
+
+        if not new_start_possible:
+            print("error, tour exploration terminated with remaining graph:")
+            print(graph)
+            break
+
+    return tour, all_trails
+
 def DB_graph(nodes, edges) :
     graph = nx.MultiDiGraph()
 
@@ -161,6 +257,18 @@ def DB_graph(nodes, edges) :
 
     return graph
 
+def get_contig_from_path(path):
+    contig = ''
+    if path is None:
+        return
+    for p in path:
+        if p is None:
+            continue
+        if contig == '':
+            contig += p
+        else:
+            contig += p[-1]
+    return contig
 
 if __name__ == "__main__":
     # add the command line arguments
@@ -173,18 +281,33 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # each file is a seperate sequence
+    #seq = "ZABCDABEFABY"
     kmer_lists = read_sequences(args.input, args.k)
-    pruned_list = filter_kmers(kmer_lists, args.threshold)
+    #kmer_list = split_into_kmers(seq, 3)
 
-    nodes, edges, start = generate_de_bruijin_graph_alt(kmer_lists[0])
+    for read_id in [0,1]:
+        print('Processing read:',read_id)
+        pruned_list = filter_kmers(kmer_lists[read_id], args.threshold)
 
-    graph = DB_graph(nodes, edges)
+        nodes, edges, start = generate_de_bruijin_graph_alt(pruned_list)
 
-    #print(nx.number_weakly_connected_components(graph))
-    weak_components = nx.weakly_connected_components(graph)
-    counter=0
-    for c in weak_components:
-        subgraph = graph.subgraph(list(c))
-        if nx.has_eulerian_path(subgraph) == True:
-            counter+=1
-    print(counter)
+        graph = DB_graph(nodes, edges)
+
+        #print(nx.number_weakly_connected_components(graph))
+        weak_components = nx.weakly_connected_components(graph)
+        list_of_contigs=[]
+        contig_string = ''
+
+        for c in weak_components:
+            subgraph = graph.subgraph(list(c))
+            if nx.has_eulerian_path(subgraph):
+                c_edges = subgraph.edges
+                c_map = make_node_edge_map(c_edges)
+                start_node = get_start_nodes(c_edges)
+                path, trail = traverse_graph_alt(c_map, start_node)
+                contig = get_contig_from_path(path)
+                if contig is not None:
+                    contig_string += contig + '\n'
+
+        with open('contigs'+str(read_id)+'.txt', 'w+') as f:
+            f.write(contig_string)
