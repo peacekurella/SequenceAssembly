@@ -175,7 +175,7 @@ def get_start_nodes(edges):
     return start
 
 
-def traverse_graph_alt(graph, start):
+def traverse_graph_eulerian(graph, start):
     # to collect all eulerian paths/cycles in a graph
     all_trails = list()
 
@@ -247,6 +247,102 @@ def traverse_graph_alt(graph, start):
 
     return tour, all_trails
 
+def traverse_graph_non_eulerian(graph, start):
+    
+    # to collect all eulerian paths/cycles in a graph
+    all_trails = list()
+
+    # to return the longest tour and all other tours that may be present
+    all_tours = []
+    
+    # the eularian tour of the entire graph
+    tour = []
+    tour.append(start)
+
+    skip_trail = True
+
+    unexplored_graph = False
+    
+    while (True):
+        # start an eulerian trail
+        trail = []
+
+        curr_node = start
+
+        # traverse a trail until we can't go further
+        while (True):
+
+            # terminate if can't go further
+            if curr_node not in graph:
+                break
+
+            # pick a next node
+            next_node = graph[curr_node].pop()
+
+            # if the adjacency list becomes emtpy for the current node, delete
+            if len(graph[curr_node]) == 0:
+                del graph[curr_node]
+
+            # append next node to trail
+            trail.append(next_node)
+
+            # if we circle back to start we have covered the trail
+            if next_node == start:
+                break;
+
+            # if not move on to next node
+            curr_node = next_node
+
+        # we skip adding the first trail as it would reflect in the tour
+        if skip_trail == False:
+            # after finishing a trail, add it to all tours
+            all_trails.append(list(trail))
+
+        skip_trail = False
+
+        # where to append the trail in the tour
+        append_at = tour.index(start)
+
+        # introducing the trail inbetween the tour
+        tour = tour[:append_at + 1] + trail + tour[append_at + 1:]
+
+        # done if no more nodes to explore
+        if len(graph) == 0:
+            break
+
+        new_start_possible = False
+
+        for node in tour:
+            if node in graph:
+                start = node
+                new_start_possible = True
+                break
+        
+        # if there are unexplored edges
+        if not new_start_possible:
+            unexplored_graph = True
+            break
+            
+    all_tours.append(tour)
+    
+    # treat them as weakly connected components and try to find eulerian paths from them
+    if unexplored_graph == True:
+        
+        # create an nx_graph from the remaining graph
+        nx_graph = get_nx_graph(graph)
+        
+        # check for eulerian path in the weakly connected components
+        for c in nx.weakly_connected_components(nx_graph):
+            subgraph = nx_graph.subgraph(list(c))
+            if nx.is_eulerian(subgraph) or nx.is_semieulerian(subgraph):
+                c_edges = subgraph.edges
+                c_map = make_node_edge_map(c_edges)
+                start_node = get_start_nodes(c_edges)
+                path, trail = traverse_graph_eulerian(c_map, start_node)
+                all_tours.append(path)
+                
+    return all_tours
+
 def DB_graph(nodes, edges) :
     graph = nx.MultiDiGraph()
 
@@ -256,6 +352,18 @@ def DB_graph(nodes, edges) :
     graph.add_edges_from(edges)
 
     return graph
+
+def get_nx_graph(graph):
+    # get nx_graph from a dictionary representation
+    nx_graph = nx.MultiDiGraph()
+    
+    for key, values in graph.items():
+        nx_graph.add_node(key)
+        for value in values:
+            nx_graph.add_node(value)
+            nx_graph.add_edge(key, value)
+            
+    return nx_graph
 
 def get_contig_from_path(path):
     contig = ''
@@ -298,6 +406,7 @@ if __name__ == "__main__":
         list_of_contigs=[]
         contig_string = ''
         nx_contig_string = ''
+        non_eul_contig_string = ''
 
         for c in weak_components:
             subgraph = graph.subgraph(list(c))
@@ -325,8 +434,25 @@ if __name__ == "__main__":
                 if contig is not None:
                     nx_contig_string += contig + '\n'
 
+            if not nx.is_eulerian(subgraph) and not nx.is_semieulerian(subgraph):
+                c_edges = subgraph.edges
+                c_map = make_node_edge_map(c_edges)
+                start_node = get_start_nodes(c_edges)
+                
+                all_tours = traverse_graph_non_eulerian(c_map, start_node)
+                
+                print("len of all:"+str(len(all_tours)))
+                for tour in all_tours:
+                    contig = get_contig_from_path(tour)
+                    if contig is not None:
+                        non_eul_contig_string += contig + '\n'
+                    
+
         with open('contigs'+str(read_id)+'.txt', 'w+') as f:
             f.write(contig_string)
 
         with open('nx_contigs'+str(read_id)+'.txt', 'w+') as f:
             f.write(nx_contig_string)
+
+        with open('non_eul_contigs'+str(read_id)+'.txt', 'w+') as f:
+            f.write(non_eul_contig_string)
