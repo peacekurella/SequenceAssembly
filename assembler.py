@@ -31,10 +31,10 @@ def split_into_kmers(sequence, k):
     """
     kmers = []
     for i in range(len(sequence)):
-        if len(sequence[i: i + k + 1]) < k:
+        if len(sequence[i: i + k]) < k:
             break
         else:
-            kmers.append(sequence[i: i + k + 1])
+            kmers.append(sequence[i: i + k])
 
     return kmers
 
