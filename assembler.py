@@ -297,17 +297,36 @@ if __name__ == "__main__":
         weak_components = nx.weakly_connected_components(graph)
         list_of_contigs=[]
         contig_string = ''
+        nx_contig_string = ''
 
         for c in weak_components:
             subgraph = graph.subgraph(list(c))
-            if nx.has_eulerian_path(subgraph):
+            if nx.is_eulerian(subgraph) or nx.is_semieulerian(subgraph):
                 c_edges = subgraph.edges
                 c_map = make_node_edge_map(c_edges)
                 start_node = get_start_nodes(c_edges)
+
                 path, trail = traverse_graph_alt(c_map, start_node)
                 contig = get_contig_from_path(path)
                 if contig is not None:
                     contig_string += contig + '\n'
 
+            if nx.is_eulerian(subgraph):
+                edges_iter = nx.eulerian_circuit(subgraph)
+                path = [u for u, v in edges_iter]
+                contig = get_contig_from_path(path)
+                if contig is not None:
+                    nx_contig_string += contig + '\n'
+
+            if nx.is_semieulerian(subgraph):
+                edges_iter = nx.eulerian_path(subgraph)
+                path = [u for u, v in edges_iter]
+                contig = get_contig_from_path(path)
+                if contig is not None:
+                    nx_contig_string += contig + '\n'
+
         with open('contigs'+str(read_id)+'.txt', 'w+') as f:
             f.write(contig_string)
+
+        with open('nx_contigs'+str(read_id)+'.txt', 'w+') as f:
+            f.write(nx_contig_string)
