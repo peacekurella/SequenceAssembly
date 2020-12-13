@@ -39,22 +39,23 @@ def split_into_kmers(sequence, k):
 
     return kmers
 
-def filter_kmers(kmers, threshold) :
 
+def filter_kmers(kmers, threshold):
     count_map = {}
 
-    for kmer in kmers :
-        if kmer in count_map :
+    for kmer in kmers:
+        if kmer in count_map:
             count_map[kmer] += 1
-        else :
+        else:
             count_map[kmer] = 1
 
     return_list = []
-    for kmer in kmers :
-        if count_map[kmer] >= threshold :
+    for kmer in kmers:
+        if count_map[kmer] >= threshold:
             return_list.append(kmer)
 
     return return_list
+
 
 def generate_de_bruijin_graph(kmers):
     # Set of all nodes in the DB Graph
@@ -107,8 +108,8 @@ def traverse_graph(graph):
 def align_to_reference(assembled_seq, args):
     return []
 
-def generate_de_bruijin_graph_alt(kmers):
 
+def generate_de_bruijin_graph_alt(kmers):
     # to keep track of degree of nodes
     node_degree = {}
 
@@ -122,7 +123,6 @@ def generate_de_bruijin_graph_alt(kmers):
     edges = []
 
     for kmer in kmers:
-
         # From k-mers, get k-1mers
         prefix = kmer[:-1]
         suffix = kmer[1:]
@@ -136,11 +136,11 @@ def generate_de_bruijin_graph_alt(kmers):
 
         # fetching and updating degrees
         p_count = node_degree.setdefault(prefix, 0)
-        node_degree[prefix] = p_count+1
+        node_degree[prefix] = p_count + 1
         s_count = node_degree.setdefault(suffix, 0)
-        node_degree[suffix] = s_count-1
+        node_degree[suffix] = s_count - 1
 
-    degree_node = {v:k for k, v in node_degree.items() if v != 0}
+    degree_node = {v: k for k, v in node_degree.items() if v != 0}
 
     start = None
 
@@ -153,17 +153,16 @@ def generate_de_bruijin_graph_alt(kmers):
 
 
 def get_start_nodes(edges):
-
     node_degree = {}
     for edge in edges:
         prefix = edge[0]
         suffix = edge[1]
         p_count = node_degree.setdefault(prefix, 0)
-        node_degree[prefix] = p_count+1
+        node_degree[prefix] = p_count + 1
         s_count = node_degree.setdefault(suffix, 0)
-        node_degree[suffix] = s_count-1
+        node_degree[suffix] = s_count - 1
 
-    degree_node = {v:k for k, v in node_degree.items() if v != 0}
+    degree_node = {v: k for k, v in node_degree.items() if v != 0}
 
     start = None
 
@@ -247,15 +246,17 @@ def traverse_graph_alt(graph, start):
 
     return tour, all_trails
 
-def DB_graph(nodes, edges) :
+
+def DB_graph(nodes, edges):
     graph = nx.MultiDiGraph()
 
-    for node in nodes :
+    for node in nodes:
         graph.add_node(node)
 
     graph.add_edges_from(edges)
 
     return graph
+
 
 def get_contig_from_path(path):
     contig = ''
@@ -270,6 +271,7 @@ def get_contig_from_path(path):
             contig += p[-1]
     return contig
 
+
 if __name__ == "__main__":
     # add the command line arguments
     parser = argparse.ArgumentParser()
@@ -281,33 +283,29 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # each file is a seperate sequence
-    #seq = "ZABCDABEFABY"
     kmer_lists = read_sequences(args.input, args.k)
-    #kmer_list = split_into_kmers(seq, 3)
 
-    for read_id in [0,1]:
-        print('Processing read:',read_id)
-        pruned_list = filter_kmers(kmer_lists[read_id], args.threshold)
+    for read_id in [0, 1]:
+        print('Processing read:', read_id)
+        #pruned_list = filter_kmers(kmer_lists[read_id], args.threshold)
 
-        nodes, edges, start = generate_de_bruijin_graph_alt(pruned_list)
+        nodes, edges, start = generate_de_bruijin_graph_alt(kmer_lists[read_id])
 
         graph = DB_graph(nodes, edges)
 
-        #print(nx.number_weakly_connected_components(graph))
         weak_components = nx.weakly_connected_components(graph)
-        list_of_contigs=[]
+        list_of_contigs = []
         contig_string = ''
 
         for c in weak_components:
             subgraph = graph.subgraph(list(c))
-            if nx.has_eulerian_path(subgraph):
-                c_edges = subgraph.edges
-                c_map = make_node_edge_map(c_edges)
-                start_node = get_start_nodes(c_edges)
-                path, trail = traverse_graph_alt(c_map, start_node)
-                contig = get_contig_from_path(path)
-                if contig is not None:
-                    contig_string += contig + '\n'
+            c_edges = subgraph.edges
+            c_map = make_node_edge_map(c_edges)
+            start_node = get_start_nodes(c_edges)
+            path, trail = traverse_graph_alt(c_map, start_node)
+            contig = get_contig_from_path(path)
+            if contig is not None:
+                contig_string += contig + '\n'
 
-        with open('contigs'+str(read_id)+'.txt', 'w+') as f:
+        with open('contigs' + str(read_id) + '.txt', 'w+') as f:
             f.write(contig_string)
