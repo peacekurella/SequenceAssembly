@@ -387,6 +387,6 @@ if __name__ == "__main__":
                     'read': read_id
                 }, ignore_index=True)
 
-                results.to_csv(os.path.join(output_directory, 'results.csv'))
+                results.to_csv(os.path.join(args.output, 'results.csv'))
             break
         break
