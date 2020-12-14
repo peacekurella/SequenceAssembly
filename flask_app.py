@@ -31,9 +31,10 @@ def alignment():
 
 @app.route('/data')
 def data():
-    with open('output/k_30_th_2/graph.json') as o:
-        data = json.load(o)
-    return data
+    with open('output/k_30_th_2/path_file_0.json') as o:
+        data1 = json.load(o)['path']
+    with open('output/k_30_th_2/path_file_1.json') as o:
+        data2 = json.load(o)['path']
 
 
 def convert_graph_to_json(edges):

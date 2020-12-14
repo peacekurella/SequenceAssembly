@@ -307,7 +307,8 @@ if __name__ == "__main__":
     parser.add_argument("--k", default=30, help="k-mer size")
     parser.add_argument("--threshold", default=2, help="min count of k-mers to consider")
     parser.add_argument("--input", default="sars-cov-2-trimmed/PE-SW-4-15", help="input directory")
-    parser.add_argument("--output", default="output", help="output folder")
+    parser.add_argument("--output", default="output_np", help="output folder")
+    parser.add_argument("--prune", default=False, help="prune k-mers")
     parser.add_argument("--ref", default="reference/reference.fna", help="reference genome file")
 
     args = parser.parse_args()
@@ -322,68 +323,70 @@ if __name__ == "__main__":
         'read': []
     })
 
-    for args.threshold in range(2, 5):
-        for args.k in range(30, 100, 5):
-            # each file is a seperate sequence
-            kmer_lists = read_sequences(args.input, args.k)
+    for args.k in range(30, 100, 5):
+        # each file is a seperate sequence
+        kmer_lists = read_sequences(args.input, args.k)
 
-            for read_id in [0, 1]:
+        for read_id in [0]:
 
-                print('Processing read:', read_id)
+            print('Processing read:', read_id)
 
-                output_directory = os.path.join(args.output, 'k_{}_th_{}'.format(args.k, args.threshold))
-                if not os.path.isdir(output_directory):
-                    os.makedirs(output_directory)
+            output_directory = os.path.join(args.output, 'k_{}_th_{}'.format(args.k, args.threshold))
+            if not os.path.isdir(output_directory):
+                os.makedirs(output_directory)
 
+            if args.prune:
                 pruned_list = filter_kmers(kmer_lists[read_id], args.threshold)
+            else:
+                pruned_list = kmer_lists[read_id]
 
-                nodes, edges, start = generate_de_bruijin_graph_alt(pruned_list)
+            nodes, edges, start = generate_de_bruijin_graph_alt(pruned_list)
 
-                graph = DB_graph(nodes, edges)
+            graph = DB_graph(nodes, edges)
 
-                weak_components = nx.weakly_connected_components(graph)
-                contigs = []
-                paths = []
-                for c in weak_components:
-                    subgraph = graph.subgraph(list(c))
-                    c_edges = subgraph.edges
-                    c_map = make_node_edge_map(c_edges)
-                    start_node = get_start_nodes(c_edges)
-                    path, trail = traverse_graph_alt(c_map, start_node)
-                    contig = get_contig_from_path(path)
-                    if contig is not None:
-                        paths.append(path)
-                        contigs.append(contig)
+            weak_components = nx.weakly_connected_components(graph)
+            contigs = []
+            paths = []
+            for c in weak_components:
+                subgraph = graph.subgraph(list(c))
+                c_edges = subgraph.edges
+                c_map = make_node_edge_map(c_edges)
+                start_node = get_start_nodes(c_edges)
+                path, trail = traverse_graph_alt(c_map, start_node)
+                contig = get_contig_from_path(path)
+                if contig is not None:
+                    paths.append(path)
+                    contigs.append(contig)
 
-                output_file = os.path.join(output_directory, 'read_{}.txt'.format(read_id))
+            output_file = os.path.join(output_directory, 'read_{}.txt'.format(read_id))
 
-                with open(output_file, 'w') as op:
-                    op.writelines("%s\n" % contig for contig in contigs)
+            with open(output_file, 'w') as op:
+                op.writelines("%s\n" % contig for contig in contigs)
 
-                scores, best_score, best_alignment, best_contig_idx = get_alignment_scores(contigs, args.ref)
+            scores, best_score, best_alignment, best_contig_idx = get_alignment_scores(contigs, args.ref)
 
-                path_file = os.path.join(output_directory, "path_file_{}.json".format(read_id))
-                with open(path_file, 'w') as op:
-                    json.dump({
-                        'path': paths[best_contig_idx]
-                    }, op)
+            path_file = os.path.join(output_directory, "path_file_{}.json".format(read_id))
+            with open(path_file, 'w') as op:
+                json.dump({
+                    'path': paths[best_contig_idx]
+                }, op)
 
-                best_alignment_file = os.path.join(output_directory, 'best_alignment_{}.json'.format(read_id))
-                with open(best_alignment_file, 'w') as op:
-                    json.dump({
-                        'align': best_alignment
-                    }, op)
+            best_alignment_file = os.path.join(output_directory, 'best_alignment_{}.json'.format(read_id))
+            with open(best_alignment_file, 'w') as op:
+                json.dump({
+                    'align': best_alignment
+                }, op)
 
-                num_contigs, lens = get_lens(contigs)
+            num_contigs, lens = get_lens(contigs)
 
-                results = results.append({
-                    'k': args.k,
-                    'threshold': args.threshold,
-                    'al_scores': scores,
-                    'lens': lens,
-                    'n_cons': num_contigs,
-                    'best_al_score': best_score,
-                    'read': read_id
-                }, ignore_index=True)
+            results = results.append({
+                'k': args.k,
+                'threshold': args.threshold,
+                'al_scores': scores,
+                'lens': lens,
+                'n_cons': num_contigs,
+                'best_al_score': best_score,
+                'read': read_id
+            }, ignore_index=True)
 
-                results.to_csv(os.path.join(args.output, 'results.csv'))
+            results.to_csv(os.path.join(args.output, 'results.csv'))
