@@ -3,7 +3,7 @@ from Bio import SeqIO
 import numpy as np
 import json
 
-with open('contigs0.txt') as contigs:
+with open('contigs1.txt') as contigs:
     contigs = contigs.readlines()
 
 for record in SeqIO.parse("reference/reference.fna", "fasta"):
@@ -14,12 +14,9 @@ aligner = Align.PairwiseAligner()
 scores = []
 for contig in contigs:
     contig = contig.strip('\n')
-
     alignment = aligner.align(reference, contig)[0]
     print(alignment.score)
-    print()
     scores.append(alignment.score)
-    break
 
 scores = np.array(scores)
 best_contig = np.argmax(scores)

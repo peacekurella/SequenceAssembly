@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import render_template
 from flask import Markup
+import json
 
 app = Flask(__name__)
 
@@ -30,59 +31,48 @@ def alignment():
 
 @app.route('/data')
 def data():
-    data = {
-        "nodes": [
-            {
-                "name": "Peter",
-                "label": "Person",
-                "id": 1
-            },
-            {
-                "name": "Michael",
-                "label": "Person",
-                "id": 2
-            },
-            {
-                "name": "Neo4j",
-                "label": "Database",
-                "id": 3
-            },
-            {
-                "name": "Graph Database",
-                "label": "Database",
-                "id": 4
-            }
-        ],
-        "links": [
-            {
-                "source": 1,
-                "target": 2,
-                "type": "KNOWS",
-                "since": 2010
-            },
-            {
-                "source": 1,
-                "target": 3,
-                "type": "FOUNDED"
-            },
-            {
-                "source": 2,
-                "target": 3,
-                "type": "WORKS_ON"
-            },
-            {
-                "source": 3,
-                "target": 4,
-                "type": "IS_A"
-            },
-            {
-                "source": 3,
-                "target": 3,
-                "type": "IS_B"
-            },
-        ]
-    }
+    with open('output/k_30_th_2/graph.json') as o:
+        data = json.load(o)
     return data
+
+def convert_graph_to_json(edges):
+    node_ref = {}
+    for edge in edges:
+        node_ref[edge[:-1]] = 0
+        node_ref[edge[1:]] = 0
+
+    nodes = []
+    for idx, key in enumerate(node_ref.keys()):
+        nodes.append({
+            "name": key,
+            "label": key,
+            "id": idx + 1
+        })
+        node_ref[key] = idx + 1
+
+    edges_dic = {}
+    for edge in edges:
+        key = "s_{}_t_{}".format(node_ref[edge[:-1]], node_ref[edge[1:]])
+        if key not in edges_dic.keys():
+            edges_dic[key] = 1
+        else:
+            edges_dic[key] += 1
+
+    edges = []
+    for key in edges_dic.keys():
+        s, t = key.split("_")[1], key.split("_")[3],
+        edges.append({
+            "source": s,
+            "target": t,
+            "type": edges_dic[key]
+        })
+
+    final_op = {
+        "nodes": nodes,
+        "links": edges
+    }
+
+    return final_op
 
 
 if __name__ == "__main__":
