@@ -294,7 +294,6 @@ def get_alignment_scores(contigs, reference_file):
 
 def get_lens(contigs):
     num_contigs = len(contigs)
-
     lens = []
     for contig in contigs:
         lens.append(len(contig))
@@ -379,7 +378,7 @@ if __name__ == "__main__":
 
                 results = results.append({
                     'k': args.k,
-                    'threshold': args.k,
+                    'threshold': args.threshold,
                     'al_scores': scores,
                     'lens': lens,
                     'n_cons': num_contigs,
@@ -388,5 +387,3 @@ if __name__ == "__main__":
                 }, ignore_index=True)
 
                 results.to_csv(os.path.join(args.output, 'results.csv'))
-            break
-        break

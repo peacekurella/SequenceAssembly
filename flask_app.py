@@ -35,6 +35,7 @@ def data():
         data = json.load(o)
     return data
 
+
 def convert_graph_to_json(edges):
     node_ref = {}
     for edge in edges:
