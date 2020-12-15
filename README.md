@@ -24,3 +24,24 @@ visualizations of our results.
 ## Visualization Demo
 <img src="https://github.com/peacekurella/SequenceAssembly/blob/main/readme_res/demo.gif" width="600" height="302" />
 
+## Instructions to run the code
+
+1. Run the assembler.py module on cleaned, trimmed *FASTQ*
+formatted reads. Use the following command to generate the results
+   for visualization.
+   ```
+    python assembler.py\
+        --k <set the starting value of k>\
+        --threshold <set the threshold for discarding infrequent k-mers>\
+        --input <set the input directory>\
+        --output <set the output directory>\ 
+        --prune <set to True if k-mer filtering needs to be enabled>\
+        --ref <reference genome file>
+   ```
+
+2. Run the flask_app.py with the results generated from assembler placed inside a 
+folder called *output* in the same directory as the flask app. Run the following command to 
+   launch the app
+   ``` 
+    python  flask_app.py
+   ```
