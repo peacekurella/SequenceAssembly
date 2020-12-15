@@ -22,5 +22,5 @@ parameters as a way to conduct analysis and provide neat and interactive
 visualizations of our results. 
 
 ## Visualization Demo
-<img src="https://github.com/peacekurella/SequenceAssembly/blob/main/readme_res/demo.gif" width="800" height="400" />
+<img src="https://github.com/peacekurella/SequenceAssembly/blob/main/readme_res/demo.gif" width="600" height="302" />
 
