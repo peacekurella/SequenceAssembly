@@ -5,7 +5,7 @@
 <body>
 
 	<div class="col-lg-12 text-center">
-	<h1 class="mt-5">#Contigs vs k-mer size </h1>
+	<h1 class="mt-5">#Contigs vs k-mer size</h1>
 	</div>
 
 	<div id="bp-1" style="width:1000px;height:600px;">
@@ -16,14 +16,58 @@
 	</div>
 
 	<div class="col-lg-12 text-center">
-	<h1 class="mt-5">N50 vs k-mer size </h1>
+	<h1 class="mt-5">N50 vs k-mer size</h1>
 	</div>
 
 	<div id="bp-2" style="width:1000px;height:600px;">
 		<script >
 			var data = [JSON.parse('{{ n50 | tojson | safe }}')];
-			Plotly.newPlot('bp-2', data);
+			var layout = {
+			  title: {
+				text:'Plot Title',
+				font: {
+				  family: 'Courier New, monospace',
+				  size: 24
+				},
+				xref: 'paper',
+				x: 0.05,
+			  },
+			  xaxis: {
+				title: {
+				  text: 'Reference Sequence',
+				  font: {
+					family: 'Courier New, monospace',
+					size: 18,
+					color: '#7f7f7f'
+				  }
+				},
+			  },
+			  yaxis: {
+				title: {
+				  text: 'Assembled Sequence',
+				  font: {
+					family: 'Courier New, monospace',
+					size: 18,
+					color: '#7f7f7f'
+				  }
+				}
+			  }
+			};
+
+			Plotly.newPlot('bp-2', data, layout);
 		</script>
 	</div>
+
+	<div class="col-lg-12 text-center">
+	<h1 class="mt-5">Mean Alignment score vs k-mer size</h1>
+	</div>
+
+	<div id="bp-3" style="width:1000px;height:600px;">
+		<script >
+			var data = [JSON.parse('{{ asc | tojson | safe }}')];
+			Plotly.newPlot('bp-3', data);
+		</script>
+	</div>
+
 
 </body>

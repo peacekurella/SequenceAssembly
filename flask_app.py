@@ -35,16 +35,28 @@ def stats():
         a = [int(n) for n in a]
         scores.append(median(a))
 
+    als = results['al_scores'].to_list()
+    asc = []
+    for a in als:
+        a = a.strip('[').strip(']').strip()
+        a = a.split('.')
+        l = []
+        for n in a:
+            c = n.strip('').strip('\n')
+            if c != '':
+                l.append(int(c))
+        asc.append(sum(l) / len(l))
+
     n50 = {'x': x, 'y': scores}
+    ascs = {'x': x, 'y': asc}
 
-
-    stats = render_template('stats.html', contigs=ctgs, n50=n50)
+    stats = render_template('stats.html', contigs=ctgs, n50=n50, asc=ascs)
     return render_template('home.html', content=Markup(stats))
 
 
 @app.route('/align')
 def alignment():
-    with open('output/k_30_th_2/best_alignment_0.json') as dt:
+    with open('output/k_30_th_2/best_alignment_1.json') as dt:
         data = json.load(dt)['align'][0]
     x, y = [], []
     for point in data:
@@ -71,8 +83,6 @@ def data():
 
     data = convert_graph_to_json([data1, data2])
     return data
-
-
 
 
 def convert_graph_to_json(paths_list):
